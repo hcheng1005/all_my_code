@@ -34,10 +34,16 @@ include_directories(
 )
 
 # robot_demo(EKF UKF demo)
-add_library(robot_demo src/Robot1/main.cpp)
-target_link_libraries(robot_demo ${catkin_LIBRARIES})
-add_executable(robot_demo_node src/Robot1/main.cpp)
-target_link_libraries(robot_demo_node robot_demo ${catkin_LIBRARIES})
+# add_library(robot_demo src/Robot1/main.cpp)
+# target_link_libraries(robot_demo ${catkin_LIBRARIES})
+# add_executable(robot_demo_node src/Robot1/main.cpp)
+# target_link_libraries(robot_demo_node robot_demo ${catkin_LIBRARIES})
+
+# robot_demo(EKF UKF demo)
+add_library(radar_demo src/Robot1/main2.cpp)
+target_link_libraries(radar_demo ${catkin_LIBRARIES})
+add_executable(radar_demo_node src/Robot1/main2.cpp)
+target_link_libraries(radar_demo_node radar_demo ${catkin_LIBRARIES})
 
 # assign_demo
 add_library(assign_demo src/Assignment/assign_demo.cpp )

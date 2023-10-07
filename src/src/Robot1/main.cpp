@@ -49,6 +49,7 @@ int main(int argc, char** argv)
     Control u;
     // System
     SystemModel sys;
+    sys.setCovariance();
     
     // Measurement models
     // Set position landmarks at (-10, -10) and (30, 75)
