@@ -39,19 +39,25 @@ include_directories(
 # add_executable(robot_demo_node src/Robot1/main.cpp)
 # target_link_libraries(robot_demo_node robot_demo ${catkin_LIBRARIES})
 
-# robot_demo(EKF UKF demo)
-add_library(radar_demo src/Robot1/main2.cpp)
-target_link_libraries(radar_demo ${catkin_LIBRARIES})
-add_executable(radar_demo_node src/Robot1/main2.cpp)
-target_link_libraries(radar_demo_node radar_demo ${catkin_LIBRARIES})
+# # robot_demo(EKF UKF demo)
+# add_library(radar_demo src/Robot1/main2.cpp)
+# target_link_libraries(radar_demo ${catkin_LIBRARIES})
+# add_executable(radar_demo_node src/Robot1/main2.cpp)
+# target_link_libraries(radar_demo_node radar_demo ${catkin_LIBRARIES})
 
-# assign_demo
-add_library(assign_demo src/Assignment/assign_demo.cpp )
-target_link_libraries(assign_demo ${catkin_LIBRARIES})
-add_executable(assign_demo_node src/Assignment/assign_demo.cpp include/assignment/HungarianAlg.cpp include/assignment/auction.cpp include/assignment/Lapjv.cpp)
-target_link_libraries(assign_demo_node assign_demo ${catkin_LIBRARIES})
+# simple_trace_demo
+add_library(simple_trace_demo src/SimpleTracker/simpletrack_node.cpp)
+target_link_libraries(simple_trace_demo ${catkin_LIBRARIES})
+add_executable(simple_trace_demo_node src/SimpleTracker/simpletrack_node.cpp include/distance/iou.cpp)
+target_link_libraries(simple_trace_demo_node simple_trace_demo ${catkin_LIBRARIES})
 
-add_library(kbest_demo src/Assignment/kbest_demo.cpp )
-target_link_libraries(kbest_demo ${catkin_LIBRARIES})
-add_executable(kbest_demo_node src/Assignment/kbest_demo.cpp  include/assignment/auction.cpp include/assignment/Lapjv.cpp)
-target_link_libraries(kbest_demo_node kbest_demo ${catkin_LIBRARIES})
+# # assign_demo
+# add_library(assign_demo src/Assignment/assign_demo.cpp )
+# target_link_libraries(assign_demo ${catkin_LIBRARIES})
+# add_executable(assign_demo_node src/Assignment/assign_demo.cpp include/assignment/HungarianAlg.cpp include/assignment/auction.cpp include/assignment/Lapjv.cpp)
+# target_link_libraries(assign_demo_node assign_demo ${catkin_LIBRARIES})
+
+# add_library(kbest_demo src/Assignment/kbest_demo.cpp )
+# target_link_libraries(kbest_demo ${catkin_LIBRARIES})
+# add_executable(kbest_demo_node src/Assignment/kbest_demo.cpp  include/assignment/auction.cpp include/assignment/Lapjv.cpp)
+# target_link_libraries(kbest_demo_node kbest_demo ${catkin_LIBRARIES})

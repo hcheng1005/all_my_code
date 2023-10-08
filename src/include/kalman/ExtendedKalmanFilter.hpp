@@ -113,9 +113,6 @@ namespace Kalman {
             
             // predict state
             x = s.f(x, u);
-            
-            // auto test_ = s.W * s.getCovariance() * s.W.transpose() ;
-            // std::cout << test_(0,0) << ", "<< test_(1,1) << ", "<< test_(2,2) << ", "<< test_(3,3)  << std::endl;
 
             // predict covariance
             P  = ( s.F * P * s.F.transpose() ) + ( s.W * s.getCovariance() * s.W.transpose() );
@@ -138,9 +135,6 @@ namespace Kalman {
             
             // COMPUTE KALMAN GAIN
             // compute innovation covariance
-            // auto test_ = m.V * m.getCovariance() * m.V.transpose() ;
-            // std::cout << test_(0,0) << ", "<< test_(1,1) << ", "<< test_(2,2)  << std::endl;
-
             Covariance<Measurement> S = ( m.H * P * m.H.transpose() ) + ( m.V * m.getCovariance() * m.V.transpose() );
             
             // compute kalman gain
@@ -148,8 +142,6 @@ namespace Kalman {
             
             // UPDATE STATE ESTIMATE AND COVARIANCE
             // Update state using computed kalman gain and innovation
-            auto diff_ = z - m.h( x );
-            std::cout << diff_(0) << ", "<< diff_(1) << ", "<< diff_(2)  << std::endl;
             x += K * ( z - m.h( x ) );
             
             // Update covariance

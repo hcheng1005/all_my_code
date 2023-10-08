@@ -38,7 +38,7 @@ void creat_rect_box_point(const rect_basic_struct &rect_1,
 double intersection_area(const rect_corners_struct &box_1,
                          const rect_corners_struct &box_2)
 {
-    Point p1[5], p2[5];
+    myPoint p1[5], p2[5];
     for (uint8_t idx = 0; idx < 4; idx++)
     {
         p1[idx] = box_1.corners[idx];
@@ -49,10 +49,10 @@ double intersection_area(const rect_corners_struct &box_1,
     return area;
 }
 
-double SPIA(Point a[], Point b[], int na, int nb)
+double SPIA(myPoint a[], myPoint b[], int na, int nb)
 {
     int i, j;
-    Point t1[4], t2[4];
+    myPoint t1[4], t2[4];
     double res = 0, num1, num2;
     a[na] = t1[0] = a[0], b[nb] = t2[0] = b[0];
 
@@ -87,17 +87,17 @@ int dcmp(double x)
     return x < -eps ? -1 : 0;
 }
 
-double cross(Point a, Point b, Point c) /// 叉积
+double cross(myPoint a, myPoint b, myPoint c) /// 叉积
 {
     return (a.x - c.x) * (b.y - c.y) - (b.x - c.x) * (a.y - c.y);
 }
 
-double CPIA(Point a[], Point b[], int na, int nb)
+double CPIA(myPoint a[], myPoint b[], int na, int nb)
 {
-    Point p[20], tmp[20];
+    myPoint p[20], tmp[20];
     int tn, sflag, eflag;
     a[na] = a[0], b[nb] = b[0];
-    memcpy(p, b, sizeof(Point) * (nb + 1));
+    memcpy(p, b, sizeof(myPoint) * (nb + 1));
     for (int i = 0; i < na && nb > 2; i++)
     {
         sflag = dcmp(cross(a[i + 1], p[0], a[i]));
@@ -109,7 +109,7 @@ double CPIA(Point a[], Point b[], int na, int nb)
             if ((sflag ^ eflag) == -2)
                 tmp[tn++] = intersection(a[i], a[i + 1], p[j], p[j + 1]); /// 求交点
         }
-        memcpy(p, tmp, sizeof(Point) * tn);
+        memcpy(p, tmp, sizeof(myPoint) * tn);
         nb = tn, p[nb] = p[0];
     }
     if (nb < 3)
@@ -135,9 +135,9 @@ double calcul_rect_area(const rect_basic_struct &r)
     return (r.box_len * r.box_wid);
 }
 
-Point intersection(Point a, Point b, Point c, Point d)
+myPoint intersection(myPoint a, myPoint b, myPoint c, myPoint d)
 {
-    Point p = a;
+    myPoint p = a;
     double t = ((a.x - c.x) * (c.y - d.y) - (a.y - c.y) * (c.x - d.x)) /
                ((a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x));
     p.x += (b.x - a.x) * t;
@@ -146,7 +146,7 @@ Point intersection(Point a, Point b, Point c, Point d)
 }
 
 // 计算多边形面积
-double PolygonArea(Point p[], int n)
+double PolygonArea(myPoint p[], int n)
 {
     if (n < 3)
     {
@@ -163,10 +163,10 @@ double PolygonArea(Point p[], int n)
 }
 
 // variables for calcul convexHull
-Point p0;
-std::stack<Point> convex_hull;
+myPoint p0;
+std::stack<myPoint> convex_hull;
 
-void find_convex_hull(std::vector<Point> points, Point p0)
+void find_convex_hull(std::vector<myPoint> points, myPoint p0)
 {
     // p0和p1是凸包中的点
     convex_hull.push(points[0]);
@@ -174,8 +174,8 @@ void find_convex_hull(std::vector<Point> points, Point p0)
 
     uint i = 2;
     // p1,p2为栈顶两个节点
-    Point p1 = points.at(0);
-    Point p2 = points.at(1);
+    myPoint p1 = points.at(0);
+    myPoint p2 = points.at(1);
     while (i < points.size())
     {
         // 如果points[i]和points[i-1]在同一个角度，则不再对points[i]进行计算
@@ -228,7 +228,7 @@ void find_convex_hull(std::vector<Point> points, Point p0)
 }
 
 // 寻找p0
-void find_p0(Point &p0, std::vector<Point> &points)
+void find_p0(myPoint &p0, std::vector<myPoint> &points)
 {
     p0 = points[0];
     for (uint i = 1; i < points.size(); i++)
@@ -248,7 +248,7 @@ void find_p0(Point &p0, std::vector<Point> &points)
 }
 
 // 极角排序
-bool cmp_(Point &p1, Point &p2)
+bool cmp_(myPoint &p1, myPoint &p2)
 {
     // p0排首位
     if (p1.x == p0.x && p1.y == p0.y)
@@ -282,7 +282,7 @@ bool cmp_(Point &p1, Point &p2)
 double compute_convexHullArea(const rect_corners_struct &r1,
                               const rect_corners_struct &r2)
 {
-    std::vector<Point> point_list;
+    std::vector<myPoint> point_list;
 
     for (uint8_t idx = 0; idx < 4; idx++)
     {
@@ -305,7 +305,7 @@ double compute_convexHullArea(const rect_corners_struct &r1,
     find_convex_hull(point_list, p0); // 搜索凸包
 
     // 计算凸包面积
-    Point ppp[10];
+    myPoint ppp[10];
     uint8_t num_ = 0;
     while (!convex_hull.empty())
     {
@@ -319,7 +319,7 @@ double compute_convexHullArea(const rect_corners_struct &r1,
     return ares_;
 }
 
-int orientation(Point p, Point q, Point r)
+int orientation(myPoint p, myPoint q, myPoint r)
 {
     double val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
     if (val == 0)
@@ -327,18 +327,18 @@ int orientation(Point p, Point q, Point r)
     return (val > 0) ? 1 : 2; // Clockwise or Counterclockwise
 }
 
-bool comparePoints(Point p1, Point p2)
+bool comparePoints(myPoint p1, myPoint p2)
 {
     return (p1.x < p2.x) || (p1.x == p2.x && p1.y < p2.y);
 }
 
-std::vector<Point> convexHull(std::vector<Point> points)
+std::vector<myPoint> convexHull(std::vector<myPoint> points)
 {
     int n = points.size();
     if (n < 3)
         return points;
 
-    std::vector<Point> hull;
+    std::vector<myPoint> hull;
 
     int l = 0;
     for (int i = 1; i < n; ++i)
@@ -383,7 +383,7 @@ double IOU_2D(const rect_basic_struct &rect_1,
     // compute_convexHullArea(box_1, box_2);
 
     // a new way to compute convexHullArea
-    // std::vector<Point> points = {
+    // std::vector<myPoint> points = {
     //     {box_1.corners[0].x, box_1.corners[0].y},
     //     {box_1.corners[1].x, box_1.corners[1].y},
     //     {box_1.corners[2].x, box_1.corners[2].y},
@@ -395,7 +395,7 @@ double IOU_2D(const rect_basic_struct &rect_1,
     // };
 
     // std::sort(points.begin(), points.end(), comparePoints);
-    // std::vector<Point> hull = convexHull(points);
+    // std::vector<myPoint> hull = convexHull(points);
 
     // // 计算凸包的面积（假设凸包至少有三个点）
     // double area = 0;

@@ -2,3 +2,5 @@
 /.vscode
 /build
 /devel
+src/src/SimpleTracker/*.txt
+src/src/SimpleTracker/*.bin
