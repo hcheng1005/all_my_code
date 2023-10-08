@@ -1,14 +1,16 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+
+#include "type.h"
 #include "dataIO.h"
+
 #include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <ros/ros.h>
-#include <pcl/point_cloud.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <pcl/io/pcd_io.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+
+// Eigen
+#include <Eigen/Dense>
 
 #include "PositionMeasurementModel.hpp"
 #include "SystemModel.hpp"
@@ -24,6 +26,10 @@ typedef SimpleTrack::State<T> State;
 typedef SimpleTrack::Control<T> Control;
 typedef SimpleTrack::SystemModel_CAWithShape<T> SystemModel;
 typedef SimpleTrack::PositionMeasurementModel_3DBBox<T> MeasModel;
+
+
+ros::Publisher point_pub;
+ros::Publisher marker_array_pub_;
 
 /**
  * @names:
@@ -110,20 +116,27 @@ std::vector<std::pair<size_t, size_t>> compute_trace_meas_distance(std::vector<r
     return assignments;
 }
 
+
 /**
  * @names:
  * @description: Briefly describe the function of your function
  * @return {*}
  */
-ros::Publisher point_pub;
+void Proc(const visualization_msgs::MarkerArray& msg)
+{
+	ROS_INFO("I heard");
+
+    // 算法开始执行
+}
+
+
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "depth_cluster");
+    ros::init(argc, argv, "SimpleTracker_sub");
     ros::NodeHandle nh;
-    point_pub = nh.advertise<sensor_msgs::PointCloud2>("pointcloud", 1);
-    // ros::spin();
+    ros::Subscriber sub = nh.subscribe("bboxes", 10, Proc); // 定义监听通道名称以及callback函数
 
-    std::cout << "It a SimpleTrack Demo" << std::endl;
+    ros::spin();
 
     // 读取点云文件和检测结果
     std::vector<SimpleTrack::Trace<T>> TraceList;
@@ -133,54 +146,4 @@ int main(int argc, char **argv)
     size_t newID = 0;
     SimpleTrack::Trace<T> new_trace(x, newID);
     TraceList.push_back(new_trace);
-
-    // std::cout << TraceList.size() << std::endl;
-
-    // std::ifstream det_file("/home/zdhjs-05/myGitHubCode/all_my_code/src/src/SimpleTracker/1682556024.524868_det.txt");
-    // std::string lineStr;
-    // std::vector<std::string> lineArray;
-    // std::string str_line;
-    // while (std::getline(det_file, lineStr))
-    // {
-    //     // lineArray.push_back(lineStr);
-    //     std::stringstream ss(lineStr);
-    //     lineArray.clear();
-    //     while (getline(ss, str_line, ','))
-    //     {
-    //         lineArray.push_back(str_line);
-    //     }
-
-    //     rect_basic_struct new_det;
-    //     new_det.center_pos[0] = std::atof(lineArray.at(0));
-    //     new_det.center_pos[1] = std::atof(lineArray.at(1));
-    //     new_det.center_pos[2] = std::atof(lineArray.at(2));
-    //     new_det.box_len = std::atof(lineArray.at(3));
-    //     new_det.box_wid = std::atof(lineArray.at(4));
-    //     new_det.box_height = std::atof(lineArray.at(5));
-    //     new_det.heading = std::atof(lineArray.at(6));
-    //     Meas_List.push_back(new_det);
-    // }
-
-    DataIO pc_handle;
-    std::string file_path = "/home/zdhjs-05/myGitHubCode/all_my_code/src/src/SimpleTracker/1682556024.724863.bin";
-    PointCloudT::Ptr pc_ = pc_handle.readBinFile(file_path);
-
-    sensor_msgs::PointCloud2 laserCloudTemp;
-    pcl::toROSMsg(*pc_, laserCloudTemp);
-    laserCloudTemp.header.frame_id = "point_cloud";
-
-    ros::Rate loop_rate(1);
-    while (ros::ok())
-    {
-        //发布信息
-        point_pub.publish(laserCloudTemp);
-        ros::spinOnce();
-        loop_rate.sleep();
-
-        std::cout << "111" << std::endl;
-    }
-
-    std::cout << "222" << std::endl;
-
-    return 1;
 }

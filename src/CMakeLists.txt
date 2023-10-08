@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 2.8.7)
 project(demo_ros)
 ## Compile as C++11, supported in ROS Kinetic and newer
  add_compile_options(-std=c++14)
@@ -6,12 +6,15 @@ project(demo_ros)
 ###########
 ## Build ##
 ###########
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
-  std_msgs
+  sensor_msgs
+  geometry_msgs
   tf
 )
+
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES simple_slam
@@ -25,6 +28,7 @@ include_directories(
         ${PCL_INCLUDE_DIRS}
         ${Eigen_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
+        include
 )
 
 ## Specify additional locations of header files
@@ -46,10 +50,17 @@ include_directories(
 # target_link_libraries(radar_demo_node radar_demo ${catkin_LIBRARIES})
 
 # simple_trace_demo
-add_library(simple_trace_demo src/SimpleTracker/simpletrack_node.cpp)
+add_library(simple_trace_demo src/SimpleTracker/main.cpp)
 target_link_libraries(simple_trace_demo ${catkin_LIBRARIES})
-add_executable(simple_trace_demo_node src/SimpleTracker/simpletrack_node.cpp include/distance/iou.cpp)
-target_link_libraries(simple_trace_demo_node simple_trace_demo ${catkin_LIBRARIES})
+add_executable(simple_trace_demo_node src/SimpleTracker/main.cpp)
+target_link_libraries(simple_trace_demo_node simple_trace_demo ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+add_library(sub_demo src/SimpleTracker/simpletrack_node.cpp)
+target_link_libraries(sub_demo ${catkin_LIBRARIES})
+add_executable(simple_trace_sub_node src/SimpleTracker/simpletrack_node.cpp include/distance/iou.cpp)
+target_link_libraries(simple_trace_sub_node sub_demo ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+
 
 # # assign_demo
 # add_library(assign_demo src/Assignment/assign_demo.cpp )
