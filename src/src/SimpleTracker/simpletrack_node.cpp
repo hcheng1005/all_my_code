@@ -6,27 +6,17 @@
 #include "dataIO.h"
 
 #include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
-
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 // Eigen
 #include <Eigen/Dense>
 
-#include "PositionMeasurementModel.hpp"
-#include "SystemModel.hpp"
-#include "TraceManage.hpp"
-#include <distance/iou.h>
-#include <assignment/hungarian_optimizer.h>
+#include "simpletracker.h"
 
-using namespace TrackerDemo;
-typedef float T;
-
-// Some type shortcuts
-typedef SimpleTrack::State<T> State;
-typedef SimpleTrack::Control<T> Control;
-typedef SimpleTrack::SystemModel_CAWithShape<T> SystemModel;
-typedef SimpleTrack::PositionMeasurementModel_3DBBox<T> MeasModel;
-
+SimpleTracker myTracker;
 
 ros::Publisher point_pub;
 ros::Publisher marker_array_pub_;
@@ -34,116 +24,111 @@ ros::Publisher marker_array_pub_;
 /**
  * @names:
  * @description: Briefly describe the function of your function
- * @param {vector<SimpleTrack::Trace<T>>} &TraceList
  * @return {*}
  */
-void trace_predict(std::vector<SimpleTrack::Trace<T>> &TraceList)
+static void pub_trace_boxes(void)
 {
-    for (auto &sub_trace : TraceList)
+    visualization_msgs::MarkerArray marker_array;
+    tf2::Quaternion myQuaternion;
+
+    uint32_t shape = visualization_msgs::Marker::CUBE;
+    uint32_t id = 0;
+    for (auto trace : myTracker.TraceList)
     {
-        sub_trace.Predict();
-    }
-}
-
-/**
- * @names:
- * @description: Briefly describe the function of your function
- * @param {vector<SimpleTrack::Trace<T>>} &TraceList
- * @return {*}
- */
-void trace_update(std::vector<SimpleTrack::Trace<T>> &TraceList)
-{
-    SimpleTrack::PositionMeasurement_3DBBox<T> meas_;
-    for (auto &sub_trace : TraceList)
-    {
-        sub_trace.Update(meas_);
-    }
-}
-
-/**
- * @names:
- * @description: Briefly describe the function of your function
- * @param {vector<SimpleTrack::Trace<T>>} &TraceList
- * @return {*}
- */
-std::vector<rect_basic_struct> build_2dbox_from_trace(const std::vector<SimpleTrack::Trace<T>> &TraceList)
-{
-    std::vector<rect_basic_struct> trace_box_list;
-    SimpleTrack::State<T> x;
-    for (auto &sub_trace : TraceList)
-    {
-        rect_basic_struct new_trace_box;
-        x = sub_trace.filter.getState();
-        new_trace_box.center_pos[0] = x.x();
-        new_trace_box.center_pos[1] = x.y();
-        new_trace_box.center_pos[2] = x.z();
-        new_trace_box.box_len = x.len();
-        new_trace_box.box_wid = x.wid();
-        new_trace_box.box_height = x.height();
-
-        trace_box_list.push_back(new_trace_box);
-    }
-
-    return trace_box_list;
-}
-
-/**
- * @names:
- * @description: Briefly describe the function of your function
- * @return {*}
- */
-std::vector<std::pair<size_t, size_t>> compute_trace_meas_distance(std::vector<rect_basic_struct> &trace_list,
-                                                                   std::vector<rect_basic_struct> &meas_list)
-{
-    assign::HungarianOptimizer<T> optimizer_;
-    optimizer_.costs()->Reserve(100, 100);
-    std::vector<std::pair<size_t, size_t>> assignments;
-
-    // 构造代价矩阵（使用2DIOU作为距离度量）
-    for (size_t i = 0; i < meas_list.size(); i++)
-    {
-        for (size_t j = 0; j < trace_list.size(); j++)
+        if (!trace.valid)
         {
-            T iou_ = IOU_2D(trace_list.at(i), meas_list.at(j));
-            (*optimizer_.costs())(i, j) = iou_;
+            continue;
         }
+        auto x_state = trace.filter.getState();
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "SimpleTracker";
+        marker.header.stamp = ros::Time::now();
+
+        marker.id = trace.ID;
+        marker.type = shape;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = x_state.x();
+        marker.pose.position.y = x_state.y();
+        marker.pose.position.z = x_state.z();
+
+        // std::cout << "box.rt: " << box.rt / M_PI * 180.0 << std::endl;
+
+        myQuaternion.setRPY(0, 0, x_state.theta());
+        marker.pose.orientation = tf2::toMsg(myQuaternion);
+
+        marker.scale.x = x_state.len();
+        marker.scale.y = x_state.wid();
+        marker.scale.z = x_state.height();
+
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+
+        marker.color.a = 0.6;
+
+        marker.lifetime = ros::Duration(0.2);
+        marker_array.markers.push_back(marker);
+        id++;
     }
 
-    optimizer_.costs()->Resize(meas_list.size(), trace_list.size());
-    optimizer_.Minimize(&assignments);
-    optimizer_.PrintMatrix();
-
-    return assignments;
+    marker_array_pub_.publish(marker_array);
 }
-
 
 /**
  * @names:
  * @description: Briefly describe the function of your function
+ * @param {MarkerArray&} msg
  * @return {*}
  */
-void Proc(const visualization_msgs::MarkerArray& msg)
+void Proc(const visualization_msgs::MarkerArray &msg)
 {
-	ROS_INFO("I heard");
+    ROS_INFO("Rec A New Msg");
 
     // 算法开始执行
+    std::vector<rect_basic_struct> dets;
+    for (auto &det : msg.markers)
+    {
+        rect_basic_struct box;
+        box.center_pos[0] = det.pose.position.x;
+        box.center_pos[1] = det.pose.position.y;
+        box.center_pos[2] = det.pose.position.z;
+
+        box.box_len = det.scale.x;
+        box.box_wid = det.scale.y;
+        box.box_height = det.scale.z;
+
+        auto q = det.pose.orientation;
+        double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+        double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+        box.heading = std::atan2(siny_cosp, cosy_cosp);
+
+        // std::cout << "theta " << box.heading / M_PI * 180.0 << std::endl;
+        // std::cout << "[x,y,z]:" << det.pose.position.x << ", "<< det.pose.position.y << ", "<< det.pose.position.z << std::endl;
+
+        dets.push_back(box);
+    }
+
+    // 跟踪算法入口
+    myTracker.run(dets);
+
+    pub_trace_boxes();
 }
 
-
+/**
+ * @names:
+ * @description: Briefly describe the function of your function
+ * @param {int} argc
+ * @param {char} *
+ * @return {*}
+ */
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "SimpleTracker_sub");
     ros::NodeHandle nh;
     ros::Subscriber sub = nh.subscribe("bboxes", 10, Proc); // 定义监听通道名称以及callback函数
+    marker_array_pub_ = nh.advertise<visualization_msgs::MarkerArray>("trace", 100);
 
     ros::spin();
-
-    // 读取点云文件和检测结果
-    std::vector<SimpleTrack::Trace<T>> TraceList;
-    std::vector<rect_basic_struct> Meas_List;
-    SimpleTrack::State<T> x;
-
-    size_t newID = 0;
-    SimpleTrack::Trace<T> new_trace(x, newID);
-    TraceList.push_back(new_trace);
 }

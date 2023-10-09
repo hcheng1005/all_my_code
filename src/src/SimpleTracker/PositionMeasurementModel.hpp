@@ -80,7 +80,7 @@ namespace TrackerDemo
             void updateJacobians(const S &x)
             {
                 this->H.setZero();
-                this->H(0, 0) = 1.0;
+                this->H(x.X, 0) = 1.0;
                 this->H(1, 1) = 1.0;
                 this->H(2, 2) = 1.0;
                 this->H(3, 9) = 1.0;

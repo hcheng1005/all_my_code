@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.7)
 project(demo_ros)
 ## Compile as C++11, supported in ROS Kinetic and newer
- add_compile_options(-std=c++14)
+ add_compile_options(-std=c++17)
 
 ###########
 ## Build ##
@@ -21,9 +21,10 @@ catkin_package(
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
-
+set(PCL_INCLUDE_DIRS "usr/include/pcl-1.12/pcl")
 find_package(PCL REQUIRED)
 set(Eigen_INCLUDE_DIRS "usr/include/eigen3")
+
 include_directories(
         ${PCL_INCLUDE_DIRS}
         ${Eigen_INCLUDE_DIRS}
@@ -57,7 +58,7 @@ target_link_libraries(simple_trace_demo_node simple_trace_demo ${catkin_LIBRARIE
 
 add_library(sub_demo src/SimpleTracker/simpletrack_node.cpp)
 target_link_libraries(sub_demo ${catkin_LIBRARIES})
-add_executable(simple_trace_sub_node src/SimpleTracker/simpletrack_node.cpp include/distance/iou.cpp)
+add_executable(simple_trace_sub_node src/SimpleTracker/simpletrack_node.cpp include/distance/iou.cpp src/SimpleTracker/simpletracker.cpp)
 target_link_libraries(simple_trace_sub_node sub_demo ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 

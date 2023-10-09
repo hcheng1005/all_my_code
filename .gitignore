@@ -4,3 +4,5 @@
 /devel
 src/src/SimpleTracker/*.txt
 src/src/SimpleTracker/*.bin
+src/src/SimpleTracker/pc/*
+src/src/SimpleTracker/det/*

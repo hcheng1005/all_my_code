@@ -91,22 +91,6 @@ namespace TrackerDemo
             // update cycle
             T dt = 0.1;
 
-            // SystemModel_CAWithShape()
-            // {
-            //     this->F.setIdentity();
-            //     this->F(0, 1) = dt;
-            //     this->F(0, 2) = 0.5 * dt * dt;
-            //     this->F(1, 2) = dt;
-
-            //     this->F(3, 4) = dt;
-            //     this->F(3, 5) = 0.5 * dt * dt;
-            //     this->F(4, 5) = dt;
-
-            //     this->F(6, 7) = dt;
-            //     this->F(6, 8) = 0.5 * dt * dt;
-            //     this->F(7, 8) = dt;
-            // }
-
             S f(const S &x, const C &u) const
             {
                 //! Predicted state vector after transition
@@ -114,7 +98,7 @@ namespace TrackerDemo
 
                 x_.x() = x.x() + x.vx() * dt + 0.5 * x.ax() * dt * dt;
                 x_.y() = x.y() + x.vy() * dt + 0.5 * x.ay() * dt * dt;
-                x_.z() = x.y() + x.vy() * dt + 0.5 * x.ay() * dt * dt;
+                x_.z() = x.z() + x.vz() * dt + 0.5 * x.az() * dt * dt;
                 x_.vx() = x.vx() + x.ax() * dt;
                 x_.vy() = x.vy() + x.ay() * dt;
                 x_.vz() = x.vz() + x.az() * dt;
@@ -128,17 +112,17 @@ namespace TrackerDemo
             {
                 this->F.setIdentity();
 
-                this->F(0, 1) = dt;
-                this->F(0, 2) = 0.5 * dt * dt;
-                this->F(1, 2) = dt;
+                this->F(x.X, x.VX) = dt;
+                this->F(x.X, x.AX) = 0.5 * dt * dt;
+                this->F(x.VX, x.AX) = dt;
 
-                this->F(3, 4) = dt;
-                this->F(3, 5) = 0.5 * dt * dt;
-                this->F(4, 5) = dt;
+                this->F(x.Y, x.VY) = dt;
+                this->F(x.Y, x.AY) = 0.5 * dt * dt;
+                this->F(x.VY, x.AY) = dt;
 
-                this->F(6, 7) = dt;
-                this->F(6, 8) = 0.5 * dt * dt;
-                this->F(7, 8) = dt;
+                this->F(x.Z, x.VZ) = dt;
+                this->F(x.Z, x.AZ) = 0.5 * dt * dt;
+                this->F(x.VZ, x.AZ) = dt;
 
                 this->W.setIdentity();
             }

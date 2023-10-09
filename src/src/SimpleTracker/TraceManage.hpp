@@ -27,6 +27,7 @@ namespace TrackerDemo
             size_t Age;
             size_t matched_count = 0;
             size_t unmatched_coun = 0;
+            bool valid = false;
 
             Filter filter; // 定义滤波器
             SystemModel S_model;
