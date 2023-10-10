@@ -23,12 +23,15 @@ catkin_package(
 )
 set(PCL_INCLUDE_DIRS "usr/include/pcl-1.12/pcl")
 find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
+set(OpenCV_INCLUDE_DIRS "usr/local/include/opencv2")
 set(Eigen_INCLUDE_DIRS "usr/include/eigen3")
 
 include_directories(
         ${PCL_INCLUDE_DIRS}
         ${Eigen_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
         include
 )
 
@@ -70,8 +73,8 @@ include_directories(
 # radar_tracking_demo
 add_library(radar_tracking_demo src/RadarDemo/main.cpp)
 target_link_libraries(radar_tracking_demo ${catkin_LIBRARIES})
-add_executable(radar_tracking_demo_node src/RadarDemo/main.cpp src/RadarDemo/main.cpp)
-target_link_libraries(radar_tracking_demo_node radar_tracking_demo ${catkin_LIBRARIES} )
+add_executable(radar_tracking_demo_node src/RadarDemo/main.cpp src/RadarDemo/radarTracker.cpp src/RadarDemo/DBSCAN.cc)
+target_link_libraries(radar_tracking_demo_node radar_tracking_demo ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #---------------------------------------------------------------------------------
 

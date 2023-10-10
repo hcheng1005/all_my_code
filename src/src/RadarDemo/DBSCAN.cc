@@ -7,7 +7,7 @@
 using namespace DBSCAN;
 
 bool showInfo = false;
-std::vector<uint16_t> pointMap[GriDSize_Lat][GriDSize_Long];
+std::vector<size_t> pointMap[GriDSize_Lat][GriDSize_Long];
 
 /**
  * @names:
@@ -15,17 +15,17 @@ std::vector<uint16_t> pointMap[GriDSize_Lat][GriDSize_Long];
  * @return {*}
  */
 void DBSCAN::KNN_DBSCAN(std::vector<Point4DBSCAN> &pointSet,
-                        std::vector<std::vector<uint16_t>> &clusterSet)
+                        std::vector<std::vector<size_t>> &clusterSet)
 {
   uint8_t minNum = 0;
-  std::vector<uint16_t> clusterMember;
+  std::vector<size_t> clusterMember;
 
   clusterSet.clear();
 
   // 将点云进行栅格索引映射
   GridMappingPoint(pointSet);
 
-  for (uint16_t n = 0; n < pointSet.size(); n++)
+  for (size_t n = 0; n < pointSet.size(); n++)
   {
     // 聚类入口
     ScanPoints(n, pointSet, &clusterMember, &minNum);
@@ -106,10 +106,10 @@ void DBSCAN::GridMappingPoint(std::vector<Point4DBSCAN> &pointSet)
  * @description: Briefly describe the function of your function
  * @return {*}
  */
-void DBSCAN::ScanPoints(uint16_t start_Idx, std::vector<Point4DBSCAN> &pointSet,
-                        std::vector<uint16_t> *scanResult, uint8_t *minNumer)
+void DBSCAN::ScanPoints(size_t start_Idx, std::vector<Point4DBSCAN> &pointSet,
+                        std::vector<size_t> *scanResult, uint8_t *minNumer)
 {
-  std::vector<uint16_t> memberIdx;
+  std::vector<size_t> memberIdx;
 
   double diff_range, diff_lat, diff_long;
   double diff_V = 0;
@@ -130,9 +130,9 @@ void DBSCAN::ScanPoints(uint16_t start_Idx, std::vector<Point4DBSCAN> &pointSet,
 
   bool is_static_ = false;
 
-  for (uint16_t idx = 0; idx < scanResult->size(); idx++)
+  for (size_t idx = 0; idx < scanResult->size(); idx++)
   {
-    uint16_t ptsNum = 0;
+    size_t ptsNum = 0;
     Point4DBSCAN *point2 = &pointSet[scanResult->at(idx)];
 
     if (point2->DBSCAN_para.static_or_dyna == 1)
@@ -146,10 +146,10 @@ void DBSCAN::ScanPoints(uint16_t start_Idx, std::vector<Point4DBSCAN> &pointSet,
     }
 
     // 遍历该点云左右和上下扫描范围
-    for (uint16_t n1 = point2->PointInfo.scanLat[0];
+    for (size_t n1 = point2->PointInfo.scanLat[0];
          n1 <= point2->PointInfo.scanLat[1]; n1++)
     {
-      for (uint16_t n2 = point2->PointInfo.scanLong[0];
+      for (size_t n2 = point2->PointInfo.scanLong[0];
            n2 <= point2->PointInfo.scanLong[1]; n2++)
       {
         // 对应扫描位置是否存在点云
@@ -167,25 +167,24 @@ void DBSCAN::ScanPoints(uint16_t start_Idx, std::vector<Point4DBSCAN> &pointSet,
           if (point3->PointInfo.valid == true)
           {
             // 计算两点之间的距离
-            diff_lat =
-                fabs(point2->PointInfo.DistLat - point3->PointInfo.DistLat);
-            diff_long =
-                fabs(point2->PointInfo.DistLong - point3->PointInfo.DistLong);
+            diff_lat = fabs(point2->PointInfo.DistLat - point3->PointInfo.DistLat);
+            diff_long = fabs(point2->PointInfo.DistLong - point3->PointInfo.DistLong);
             diff_range = sqrtf(pow(diff_lat, 2.0) + pow(diff_long, 2.0));
 
             // 计算多普勒速度差
             diff_V = fabs(point2->PointInfo.V - point3->PointInfo.V);
 
-            double diff_Azi =
-                fabs(point2->PointInfo.Azi - point3->PointInfo.Azi);
+            double diff_Azi = fabs(point2->PointInfo.Azi - point3->PointInfo.Azi);
+
+            double range_gate = (point2->DBSCAN_para.Search_R >= point3->DBSCAN_para.Search_R) ?\
+                                 point2->DBSCAN_para.Search_R : point3->DBSCAN_para.Search_R;
 
             // 两点距离差
-            if (diff_range < point2->DBSCAN_para.Search_R)
+            if (diff_range < range_gate)
             {
               if (!is_static_) // 0: 动态点
               {
-                if (fabs(point2->PointInfo.DistLat -
-                         point3->PointInfo.DistLat) < 1.5)
+                if (fabs(point2->PointInfo.DistLat - point3->PointInfo.DistLat) < 1.5)
                 {
                   if (diff_V < 1.0F)
                   {
@@ -193,20 +192,8 @@ void DBSCAN::ScanPoints(uint16_t start_Idx, std::vector<Point4DBSCAN> &pointSet,
                   }
                   else
                   {
-                    if ((diff_range < (point2->DBSCAN_para.Search_R * 0.5F)) &&
+                    if ((diff_range < (range_gate * 0.5F)) &&
                         (diff_V < 2.0F))
-                    {
-                      matchFlag = true;
-                    }
-
-                    // crossing track
-                    if ((diff_range < (point2->DBSCAN_para.Search_R * 0.5F)) &&
-                        (((point2->PointInfo.DynProp == 2) ||
-                          (point2->PointInfo.DynProp == 5) ||
-                          (point2->PointInfo.DynProp == 6)) &&
-                         ((point3->PointInfo.DynProp == 2) ||
-                          (point3->PointInfo.DynProp == 5) ||
-                          (point3->PointInfo.DynProp == 6))))
                     {
                       matchFlag = true;
                     }
@@ -215,8 +202,7 @@ void DBSCAN::ScanPoints(uint16_t start_Idx, std::vector<Point4DBSCAN> &pointSet,
               }
               else // 1：静止点
               {
-                if (fabs(point2->PointInfo.DistLat -
-                         point3->PointInfo.DistLat) < 1.0)
+                if (fabs(point2->PointInfo.DistLat - point3->PointInfo.DistLat) < 1.0)
                 {
                   matchFlag = true;
                 }
@@ -225,22 +211,16 @@ void DBSCAN::ScanPoints(uint16_t start_Idx, std::vector<Point4DBSCAN> &pointSet,
             else
             {
               // 动态点云补充聚类逻辑
-              if (!is_static_)
+              if ((!is_static_) && ((diff_range < (range_gate * 1.2F)) &&
+                                    (diff_Azi < 1.5F) && (fabs(diff_V) < 0.51F)))
               {
-                if ((diff_range < (point2->DBSCAN_para.Search_R * 1.2F)) &&
-                    (diff_Azi < 1.5F) && (fabs(diff_V) < 0.51F))
-                {
-                  matchFlag = true;
-                }
+                matchFlag = true;
               }
             }
 
-            if ((matchFlag) && (!is_static_))
+            if ((matchFlag) && (!is_static_) && (diff_lat > 1.0))
             {
-              if (diff_lat > 1.0)
-              {
-                matchFlag = false;
-              }
+              matchFlag = false;
             }
 
             if (matchFlag == true)

@@ -15,8 +15,8 @@
 #define MAX_Long (200.0F) // from +0 to +200
 #define Grid_Reso (2.0F)
 
-#define GriDSize_Lat ((uint16_t)(MAX_Lat * 2.0 / Grid_Reso))
-#define GriDSize_Long ((uint16_t)(MAX_Long * 1.0 / Grid_Reso))
+#define GriDSize_Lat ((size_t)(MAX_Lat * 2.0 / Grid_Reso))
+#define GriDSize_Long ((size_t)(MAX_Long * 1.0 / Grid_Reso))
 
 namespace DBSCAN
 {
@@ -32,7 +32,7 @@ namespace DBSCAN
     {
         struct
         {
-            uint16_t ID;
+            size_t ID;
 
             float Range;
             float Azi;
@@ -42,8 +42,8 @@ namespace DBSCAN
             float V;
 
             float prob_exit;
-            uint16_t scanLat[2];
-            uint16_t scanLong[2];
+            size_t scanLat[2];
+            size_t scanLong[2];
 
             bool valid = true;
 
@@ -56,15 +56,15 @@ namespace DBSCAN
         {
             float Search_R;
             uint8_t pointType;
-            uint16_t minPts;
+            size_t minPts;
             uint8_t static_or_dyna;
         } DBSCAN_para;
 
     } Point4DBSCAN;
 
-    void KNN_DBSCAN(std::vector<Point4DBSCAN> &pointSet, std::vector<std::vector<uint16_t>> &clusterSet);
+    void KNN_DBSCAN(std::vector<Point4DBSCAN> &pointSet, std::vector<std::vector<size_t>> &clusterSet);
     void ComputePara(std::vector<Point4DBSCAN> &pointSet);
-    void ScanPoints(uint16_t start_Idx, std::vector<Point4DBSCAN> &pointSet, std::vector<uint16_t> *scanResult, uint8_t *minNumer);
+    void ScanPoints(size_t start_Idx, std::vector<Point4DBSCAN> &pointSet, std::vector<size_t> *scanResult, uint8_t *minNumer);
     void GridMappingPoint(std::vector<Point4DBSCAN> &pointSet);
 }
 

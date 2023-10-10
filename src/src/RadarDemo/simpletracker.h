@@ -26,7 +26,7 @@ public:
 public:
     SimpleTracker()
     {
-        optimizer_ = new assign::HungarianOptimizer<T>();
+        optimizer_ = new assign::HungarianOptimizer<T>(); // 初始化
         optimizer_->costs()->Reserve(100, 100);
     }
 

@@ -1,8 +1,8 @@
 '''
 Author: CharlesCH hcheng1005@gmail.com
 Date: 2023-02-20 21:00:50
-LastEditors: ChengHao hao.cheng@wuzheng.com
-LastEditTime: 2023-10-10 15:15:13
+LastEditors: CharlesCH hcheng1005@gmail.com
+LastEditTime: 2023-10-10 20:13:02
 FilePath: /all_my_code/src/src/RadarDemo/radarscene/trans_radar_pc.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -17,8 +17,8 @@ def main():
     plt.figure()
 
     # MODIFY THIS LINE AND INSERT PATH WHERE YOU STORED THE RADARSCENES DATASET
-    # path_to_dataset = "/media/charles/ShareDisk/00myDataSet/RadarScenes/RadarScenes"
-    path_to_dataset = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes"
+    path_to_dataset = "/media/charles/ShareDisk/00myDataSet/RadarScenes/RadarScenes"
+    # path_to_dataset = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes"
 
     # Define the *.json file from which data should be loaded
     # some random sequence is chosen here.
@@ -56,7 +56,7 @@ def main():
     uuid = []
     track_id = []
     label_id = []
-    radar_pc_save_path = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes/data/sequence_2/radarpc/"
+    radar_pc_save_path = "./"
     for idx, scene in enumerate(sequence.scenes()):
         if idx == 0:
             # check that start_time of the sequence is in fact identical to the timestamp of the first returned scene
@@ -81,17 +81,14 @@ def main():
             
             all_data = np.asarray([x_cc, y_cc, range_sc, azimuth_sc, rcs, vr, vr_compensated, x_seq, y_seq]).T
             
-            file_ = str(scene.camera_image_name)
+            # file_ = str(scene.camera_image_name)
+            # sub_file_name = radar_pc_save_path + file_.split('/')[-1][:-4] + '.txt'
+            # np.savetxt(sub_file_name, all_data, fmt='%.4f')
             
-            sub_file_name = radar_pc_save_path + file_.split('/')[-1][:-4] + '.txt'
-            np.savetxt(sub_file_name, all_data, fmt='%.4f')
-            
-            print(scene.camera_image_name)
-            
-            # img = cv2.imread(scene.camera_image_name)
-            # cv2.imshow('img', img)
+            img = cv2.imread(scene.camera_image_name)
+            cv2.imshow('img', img)
             plt.plot(np.asarray(y_cc), np.asarray(x_cc), 'b.')
-            plt.axis([50, -50, -10, 200])
+            plt.axis([50, -50, -20, 200])
             plt.xticks(rotation=90) # 旋转90度
             plt.pause(0.01)
 
