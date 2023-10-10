@@ -50,18 +50,30 @@ include_directories(
 # add_executable(radar_demo_node src/Robot1/main2.cpp)
 # target_link_libraries(radar_demo_node radar_demo ${catkin_LIBRARIES})
 
-# simple_trace_demo
-add_library(simple_trace_demo src/SimpleTracker/main.cpp)
-target_link_libraries(simple_trace_demo ${catkin_LIBRARIES})
-add_executable(simple_trace_demo_node src/SimpleTracker/main.cpp)
-target_link_libraries(simple_trace_demo_node simple_trace_demo ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-
-add_library(sub_demo src/SimpleTracker/simpletrack_node.cpp)
-target_link_libraries(sub_demo ${catkin_LIBRARIES})
-add_executable(simple_trace_sub_node src/SimpleTracker/simpletrack_node.cpp include/distance/iou.cpp src/SimpleTracker/simpletracker.cpp)
-target_link_libraries(simple_trace_sub_node sub_demo ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+#---------------------------------------------------------------------------------
 
 
+
+# # simple_trace_demo
+# add_library(simple_trace_demo src/SimpleTracker/main.cpp)
+# target_link_libraries(simple_trace_demo ${catkin_LIBRARIES})
+# add_executable(simple_trace_demo_node src/SimpleTracker/main.cpp)
+# target_link_libraries(simple_trace_demo_node simple_trace_demo ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+# add_library(sub_demo src/SimpleTracker/simpletrack_node.cpp)
+# target_link_libraries(sub_demo ${catkin_LIBRARIES})
+# add_executable(simple_trace_sub_node src/SimpleTracker/simpletrack_node.cpp include/distance/iou.cpp src/SimpleTracker/simpletracker.cpp)
+# target_link_libraries(simple_trace_sub_node sub_demo ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+#---------------------------------------------------------------------------------
+
+# radar_tracking_demo
+add_library(radar_tracking_demo src/RadarDemo/main.cpp)
+target_link_libraries(radar_tracking_demo ${catkin_LIBRARIES})
+add_executable(radar_tracking_demo_node src/RadarDemo/main.cpp src/RadarDemo/main.cpp)
+target_link_libraries(radar_tracking_demo_node radar_tracking_demo ${catkin_LIBRARIES} )
+
+#---------------------------------------------------------------------------------
 
 # # assign_demo
 # add_library(assign_demo src/Assignment/assign_demo.cpp )
