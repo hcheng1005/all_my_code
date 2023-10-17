@@ -12,6 +12,7 @@ struct rect_basic_struct
     double box_wid;
     double box_height;
     double heading;
+    double score;
 };
 
 struct rect_box_struct

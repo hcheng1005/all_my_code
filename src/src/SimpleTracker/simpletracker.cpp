@@ -18,7 +18,7 @@ void SimpleTracker::trace_predict(void)
         // std::cout << "old x info: " << sub_trace.filter.getState().x() << ", " << sub_trace.filter.getState().y() << ", " << sub_trace.filter.getState().z() << ", "
         //           << sub_trace.filter.getState().vx() << ", " << sub_trace.filter.getState().vy() << ", " << sub_trace.filter.getState().vz() << ", "
         //           << sub_trace.filter.getState().ax() << ", " << sub_trace.filter.getState().ay() << ", " << sub_trace.filter.getState().az() << ", " << std::endl;
-        
+
         sub_trace.Predict();
 
         // std::cout << "new x info: " << sub_trace.filter.getState().x() << ", " << sub_trace.filter.getState().y() << ", " << sub_trace.filter.getState().z() << ", "
@@ -45,12 +45,19 @@ void SimpleTracker::trace_meas_assignment(std::vector<rect_basic_struct> &detect
     traces = build_2dbox_from_trace();
 
     // Build CostMatrix by Computing 2DIOU Between Traces And Measments
-    assignments = compute_trace_meas_distance(traces, detections);
+    std::vector<std::vector<T>> cost_mat;
+    assignments = compute_trace_meas_distance(traces, detections, cost_mat);
 
+    std::cout << "assignments size is :" << assignments.size() << std::endl;
     for (const auto &sub_pair : assignments)
     {
-        trace_assignment.at(sub_pair.second) = sub_pair.first;
-        meas_assignment.at(sub_pair.first) = 0; // means this measment would not to be a new "trace"
+        std::cout << "iou is : " << cost_mat.at(sub_pair.first).at(sub_pair.second) << std::endl;
+
+        if(cost_mat.at(sub_pair.first).at(sub_pair.second) > 0.1)
+        {
+            trace_assignment.at(sub_pair.second) = sub_pair.first;
+            meas_assignment.at(sub_pair.first) = 0; // means this measment would not to be a new "trace"
+        }
     }
 }
 
@@ -60,20 +67,31 @@ void SimpleTracker::trace_meas_assignment(std::vector<rect_basic_struct> &detect
  * @return {*}
  */
 std::vector<std::pair<size_t, size_t>> SimpleTracker::compute_trace_meas_distance(std::vector<rect_basic_struct> &trace_list,
-                                                                                  std::vector<rect_basic_struct> &meas_list)
+                                                                                  std::vector<rect_basic_struct> &meas_list,
+                                                                                  std::vector<std::vector<T>> &cost_mat)
 {
     // std::cout << "Do compute_trace_meas_distance" << std::endl;
     std::vector<std::pair<size_t, size_t>> assignment;
     // std::vector<std::pair<size_t, size_t>> orin_cost;
     // 构造代价矩阵（使用2DIOU作为距离度量）
+
+    cost_mat.clear();
     for (size_t i = 0; i < meas_list.size(); i++)
     {
+        std::vector<T> sub_mat;
+
+        // std::cout << "meas pos: [" <<  meas_list.at(i).center_pos[0] << "," << meas_list.at(i).center_pos[1] << "]" << std::endl;
         for (size_t j = 0; j < trace_list.size(); j++)
         {
             T iou_ = IOU_2D(trace_list.at(j), meas_list.at(i));
-
+            sub_mat.push_back(iou_);
             (*optimizer_->costs())(i, j) = 1 - iou_; // NOTE
+
+            // std::cout << "trace pos: ["  << trace_list.at(j).center_pos[0] << "," << trace_list.at(j).center_pos[1]<< "]" << " iou: " << iou_
+            //             << std::endl;
         }
+
+        cost_mat.push_back(sub_mat);
     }
 
     optimizer_->costs()->Resize(meas_list.size(), trace_list.size());
@@ -100,6 +118,8 @@ void SimpleTracker::trace_update(std::vector<rect_basic_struct> &detections,
     size_t trace_idx = 0;
     for (auto &sub_trace : TraceList)
     {
+        sub_trace.Age++;
+
         if (trace_assignment.at(trace_idx) != 255)
         {
             det = &detections.at(trace_assignment.at(trace_idx));
@@ -116,14 +136,12 @@ void SimpleTracker::trace_update(std::vector<rect_basic_struct> &detections,
             // std::cout << "old x info: " << sub_trace.filter.getState().x() << ", " << sub_trace.filter.getState().y() << ", " << sub_trace.filter.getState().z() << ", "
             //           << sub_trace.filter.getState().vx() << ", " << sub_trace.filter.getState().vy() << ", " << sub_trace.filter.getState().vz() << ", "
             //           << sub_trace.filter.getState().ax() << ", " << sub_trace.filter.getState().ay() << ", " << sub_trace.filter.getState().az() << ", " << std::endl;
-            
+
             sub_trace.Update(meas_);
 
             // std::cout << "new x info: " << sub_trace.filter.getState().x() << ", " << sub_trace.filter.getState().y() << ", " << sub_trace.filter.getState().z() << ", "
             //           << sub_trace.filter.getState().vx() << ", " << sub_trace.filter.getState().vy() << ", " << sub_trace.filter.getState().vz() << ", "
             //           << sub_trace.filter.getState().ax() << ", " << sub_trace.filter.getState().ay() << ", " << sub_trace.filter.getState().az() << ", " << std::endl;
-
-            sub_trace.Age++;
             sub_trace.unmatched_coun = 0;
             sub_trace.matched_count++;
         }
@@ -197,7 +215,7 @@ std::vector<rect_basic_struct> SimpleTracker::build_2dbox_from_trace(void)
         new_trace_box.box_wid = x.wid();
         new_trace_box.box_height = x.height();
 
-        // std::cout << "[x, y]: " << new_trace_box.center_pos[0] << ", " << new_trace_box.center_pos[1] << std::endl;
+        std::cout << "[x, y]: " << new_trace_box.center_pos[0] << ", " << new_trace_box.center_pos[1] << std::endl;
 
         trace_box_list.push_back(new_trace_box);
     }
@@ -255,8 +273,55 @@ void SimpleTracker::trace_management(void)
     // }
 }
 
+static bool cmp(const std::pair<size_t, T> &a, const std::pair<size_t, T> &b)
+{
+    return (a.second >= b.second);
+}
+
 /**
  * @names:
+ * @description: Briefly describe the function of your function
+ * @param {vector<rect_basic_struct>} &detections
+ * @return {*}
+ */
+void SimpleTracker::do_nms(std::vector<rect_basic_struct> &detections)
+{
+    std::vector<rect_basic_struct> result;
+    T nms_iou_gate = 0.01;
+
+    std::sort(detections.begin(), detections.end(), [](const rect_basic_struct &a, const rect_basic_struct &b)
+              { return (a.score >= b.score); });
+
+    T iou_;
+
+    std::cout << "Before NMS: " << detections.size();
+
+    while (!detections.empty())
+    {
+        rect_basic_struct current = detections[0];
+        result.push_back(current);
+        detections.erase(detections.begin());
+
+        for (auto it = detections.begin(); it != detections.end();)
+        {
+            iou_ = IOU_2D(current, *it);
+            if (iou_ > nms_iou_gate)
+            {
+                it = detections.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
+    detections = result;
+    std::cout << "After NMS: " << result.size();
+}
+
+/**
+ * @names:  
  * @description: Briefly describe the function of your function
  * @param {vector<rect_basic_struct>} &detctions
  * @return {*}
@@ -266,6 +331,8 @@ void SimpleTracker::run(std::vector<rect_basic_struct> &detections)
     std::cout << "Tracker Run" << std::endl;
 
     std::vector<size_t> trace_assignment, meas_assignment;
+
+    do_nms(detections);
 
     // Step 1: Global Trace Predict
     trace_predict();

@@ -56,5 +56,11 @@ private:
     std::vector<rect_basic_struct> build_2dbox_from_trace(void);
     void trace_management(void);
     std::vector<std::pair<size_t, size_t>> compute_trace_meas_distance(std::vector<rect_basic_struct> &trace_list,
-                                                                       std::vector<rect_basic_struct> &meas_list);
+                                                                       std::vector<rect_basic_struct> &meas_list,
+                                                                       std::vector<std::vector<T>> &cost_mat);
+
+    void do_nms(std::vector<rect_basic_struct> &detections);
 };
+
+
+static bool cmp(const std::pair<size_t, T> &a, const std::pair<size_t, T> &b);

@@ -28,6 +28,9 @@ ros::Publisher marker_array_pub_;
  */
 static void pub_trace_boxes(void)
 {
+
+    std::cout << "trace number: "<< myTracker.TraceList.size() << std::endl;
+
     visualization_msgs::MarkerArray marker_array;
     tf2::Quaternion myQuaternion;
 
@@ -42,15 +45,15 @@ static void pub_trace_boxes(void)
         auto x_state = trace.filter.getState();
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "SimpleTracker";
+        marker.header.frame_id = "nuscenes";
         marker.header.stamp = ros::Time::now();
 
         marker.id = trace.ID;
         marker.type = shape;
         marker.action = visualization_msgs::Marker::ADD;
 
-        marker.pose.position.x = x_state.x();
-        marker.pose.position.y = x_state.y();
+        marker.pose.position.x = x_state.y();
+        marker.pose.position.y = x_state.x();
         marker.pose.position.z = x_state.z();
 
         // std::cout << "box.rt: " << box.rt / M_PI * 180.0 << std::endl;
@@ -58,8 +61,8 @@ static void pub_trace_boxes(void)
         myQuaternion.setRPY(0, 0, x_state.theta());
         marker.pose.orientation = tf2::toMsg(myQuaternion);
 
-        marker.scale.x = x_state.len();
-        marker.scale.y = x_state.wid();
+        marker.scale.x = x_state.wid();
+        marker.scale.y = x_state.len();
         marker.scale.z = x_state.height();
 
         marker.color.r = 1.0;
@@ -68,7 +71,7 @@ static void pub_trace_boxes(void)
 
         marker.color.a = 0.6;
 
-        marker.lifetime = ros::Duration(0.2);
+        marker.lifetime = ros::Duration(1.5);
         marker_array.markers.push_back(marker);
         id++;
     }
@@ -91,12 +94,12 @@ void Proc(const visualization_msgs::MarkerArray &msg)
     for (auto &det : msg.markers)
     {
         rect_basic_struct box;
-        box.center_pos[0] = det.pose.position.x;
-        box.center_pos[1] = det.pose.position.y;
+        box.center_pos[0] = det.pose.position.y; // 纵向
+        box.center_pos[1] = det.pose.position.x; // 横向
         box.center_pos[2] = det.pose.position.z;
 
-        box.box_len = det.scale.x;
-        box.box_wid = det.scale.y;
+        box.box_len = det.scale.y;
+        box.box_wid = det.scale.x;
         box.box_height = det.scale.z;
 
         auto q = det.pose.orientation;
@@ -104,6 +107,9 @@ void Proc(const visualization_msgs::MarkerArray &msg)
         double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
         box.heading = std::atan2(siny_cosp, cosy_cosp);
 
+        box.score =  std::atof(det.text.c_str());
+
+        // std::cout << det.text.c_str()  << std::endl;
         // std::cout << "theta " << box.heading / M_PI * 180.0 << std::endl;
         // std::cout << "[x,y,z]:" << det.pose.position.x << ", "<< det.pose.position.y << ", "<< det.pose.position.z << std::endl;
 
@@ -127,7 +133,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "SimpleTracker_sub");
     ros::NodeHandle nh;
-    ros::Subscriber sub = nh.subscribe("bboxes", 10, Proc); // 定义监听通道名称以及callback函数
+    ros::Subscriber sub = nh.subscribe("visualization_marker", 10, Proc); // 定义监听通道名称以及callback函数
     marker_array_pub_ = nh.advertise<visualization_msgs::MarkerArray>("trace", 100);
 
     ros::spin();
