@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     // std::string radar_path_pc = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes/data/sequence_2/radarpc/";
     // std::string image_path_det = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes/data/sequence_2/camera/";
 
-    std::string radar_path_pc = "/home/charles/myCode/about_others/radar_scenes/RadarScenes/data/sequence_2/radarpc/";
+    std::string radar_path_pc = "/home/charles/myCode/about_others/radar_scenes/RadarScenes/data/sequence_20/radarpc/";
     // std::string image_path_det = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes/data/sequence_2/camera/";
 
     std::string file_path;

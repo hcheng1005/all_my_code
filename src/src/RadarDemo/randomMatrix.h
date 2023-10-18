@@ -313,11 +313,11 @@ namespace RandomMatrice
             Eigen::RowVectorXf Z_mean(Eigen::RowVectorXf::Map(y_hat.data(), meas_mat.cols()));
             Eigen::MatrixXf ZK = meas_mat.rowwise() - Z_mean;
 
-            MatrixXf Yhat = (ZK.transpose() * ZK) / (meas_num - 1);
+            MatrixXf Yhat = (ZK.adjoint() * ZK) / (meas_num - 1);
 
             // compute kalman S and K
             MatrixXf Yk = 0.9 * X_ex + R;
-            MatrixXf S = H * P * H.transpose() + Yk;
+            MatrixXf S = H * P * H.transpose() + Yk / meas_num;
             MatrixXf K = P * H.transpose() * S.inverse();
 
             X = X + K * (y_hat - H * X);
