@@ -155,6 +155,7 @@ namespace Kalman {
             return *this;
         }
     };
+
 }
 
 #endif

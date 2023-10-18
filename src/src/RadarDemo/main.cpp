@@ -95,10 +95,10 @@ int main(int argc, char **argv)
     std::cout << "It a SimpleTrack Demo" << std::endl;
 
     // 遍历点云文件
-    // std::string radar_path_pc = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes/data/sequence_2/radarpc/";
+    std::string radar_path_pc = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes/data/sequence_2/radarpc/";
     // std::string image_path_det = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes/data/sequence_2/camera/";
 
-    std::string radar_path_pc = "/home/charles/myCode/all_my_code/src/src/RadarDemo/radarscene/radarpc/";
+    // std::string radar_path_pc = "/home/charles/myCode/all_my_code/src/src/RadarDemo/radarscene/radarpc/";
     // std::string image_path_det = "/home/zdhjs-05/myGitHubCode/radar_scenes/RadarScenes/data/sequence_2/camera/";
 
     std::string file_path;
@@ -115,8 +115,10 @@ int main(int argc, char **argv)
     {
         file_path = radar_path_pc + file_ + ".txt";
 
+        // 获取雷达点云
         std::vector<radar_point_t> radar_meas = read_radar_point_from_file(file_path);
 
+        // 执行雷达MOT
         radar_track_main(radar_meas);
     }
 

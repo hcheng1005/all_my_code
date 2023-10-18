@@ -16,6 +16,7 @@ namespace RadarDemo
         T y_cc;
         T x_seq;
         T y_seq;
+        bool valid = true;
     } radar_point_t;
 
     typedef struct

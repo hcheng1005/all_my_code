@@ -3,14 +3,29 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
+#include "randomMatrix.h"
+
 using namespace RadarDemo;
 
-void point_cluster(std::vector<radar_point_t> &new_meas)
+#define VISUALIZATION (true)
+
+// local vari
+std::vector<RandomMatrice::Tracker> TraceList;
+
+/**
+ * @names: point_cluster
+ * @description: 点云聚类
+ * @param {vector<radar_point_t>} &new_meas
+ * @return {*}
+ */
+std::vector<radar_cluster_t> point_cluster(std::vector<radar_point_t> &new_meas)
 {
     std::vector<std::vector<size_t>> clusterSet;
     DBSCAN::Point4DBSCAN Point;
     std::vector<DBSCAN::Point4DBSCAN> PointSet;
+
     cv::Mat image = cv::Mat::zeros(600, 800, CV_8UC3); // 宽800，高600，3通道图像
+
     /* 设置点云DBSCAN参数 */
     std::vector<cv::Point2f> point_cloud_orin;
     for (size_t n = 0; n < new_meas.size(); n++)
@@ -44,9 +59,12 @@ void point_cluster(std::vector<radar_point_t> &new_meas)
         PointSet.push_back(Point);
 
         // 添加点到点云数据
-        cv::circle(image,
-                   cv::Point2f((Point.PointInfo.DistLat + 100) / 200 * 800, 600 - Point.PointInfo.DistLong / 100 * 600),
-                   3, cv::Scalar(200, 200, 200), -1); // 红色点
+        if (VISUALIZATION)
+        {
+            cv::circle(image,
+                       cv::Point2f((Point.PointInfo.DistLat + 100) / 200 * 800, 600 - Point.PointInfo.DistLong / 100 * 600),
+                       3, cv::Scalar(200, 200, 200), -1); // 红色点
+        }
     }
     // std::cout << "DO KNN_DBSCAN " << std::endl;
 
@@ -54,30 +72,27 @@ void point_cluster(std::vector<radar_point_t> &new_meas)
     DBSCAN::KNN_DBSCAN(PointSet, clusterSet);
 
     // std::cout << "Cluster Result:[ " << clusterSet.size() << " ]" << std::endl;///////
-    // cv::Mat image = cv::Mat::zeros(600, 800, CV_8UC3); // 宽800，高600，3通道图像
-    int idx = 0;
-    for (auto &sub_cluster : clusterSet)
+    if (VISUALIZATION)
     {
-        // std::cout << "Cluster Member size:[ " << sub_cluster.size() << " ]" << std::endl;
-        std::vector<cv::Point2f> point_cloud;
-        for (auto &pc : sub_cluster)
+        int idx = 0;
+        for (auto &sub_cluster : clusterSet)
         {
-            // std::cout << "pc info: ["
-            //           << PointSet.at(pc).PointInfo.DistLat << ", "
-            //           << PointSet.at(pc).PointInfo.DistLong << " ]" << std::endl;
+            std::vector<cv::Point2f> point_cloud;
+            for (auto &pc : sub_cluster)
+            {
+                // 添加点到点云数据
+                point_cloud.push_back(cv::Point2f((PointSet.at(pc).PointInfo.DistLat + 100) / 200 * 800,
+                                                  600 - PointSet.at(pc).PointInfo.DistLong / 100 * 600));
+            }
 
-            // 添加点到点云数据
-            point_cloud.push_back(cv::Point2f((PointSet.at(pc).PointInfo.DistLat + 100) / 200 * 800,
-                                              600 - PointSet.at(pc).PointInfo.DistLong / 100 * 600));
+            // 显示图像
+            for (const cv::Point2f &point : point_cloud)
+            {
+                cv::circle(image, point, 2, cv::Scalar(0, idx * 20, 50 + idx * 20), -1); // 红色点
+            }
+
+            idx++;
         }
-
-        // 显示图像
-        for (const cv::Point2f &point : point_cloud)
-        {
-            cv::circle(image, point, 2, cv::Scalar(0, idx * 20, 50 + idx * 20), -1); // 红色点
-        }
-
-        idx++;
     }
 
     // Step 2: box fitting
@@ -117,26 +132,128 @@ void point_cluster(std::vector<radar_point_t> &new_meas)
 
         radar_cluters.push_back(radar_cluster);
 
-        cv::Rect rect((radar_cluster.center[0] - radar_cluster.wid * 0.5 + 100) / 200 * 800,
-                      600 - (radar_cluster.center[1] + radar_cluster.len * 0.5) / 100 * 600,
-                      radar_cluster.wid / 200 * 800,
-                      radar_cluster.len / 100 * 600); // 定义矩形框，左上角坐标 (200, 200)，宽高 (200, 200)
+        if (VISUALIZATION)
+        {
+            cv::Rect rect((radar_cluster.center[0] - radar_cluster.wid * 0.5 + 100) / 200 * 800,
+                          600 - (radar_cluster.center[1] + radar_cluster.len * 0.5) / 100 * 600,
+                          radar_cluster.wid / 200 * 800,
+                          radar_cluster.len / 100 * 600); // 定义矩形框，左上角坐标 (200, 200)，宽高 (200, 200)
 
-        cv::rectangle(image, rect, cv::Scalar(125, 125, 125), 2); // 绿色矩形框
+            cv::rectangle(image, rect, cv::Scalar(125, 125, 125), 2); // 绿色矩形框
+        }
     }
 
-    cv::imshow("Point Cloud Visualization", image);
-    cv::waitKey(100);
+    if (VISUALIZATION)
+    {
+        cv::imshow("Point Cloud Visualization", image);
+        cv::waitKey(50);
+    }
+
+    return radar_cluters;
 }
 
+/**
+ * @names: trace_predict
+ * @description: 航迹预测
+ * @return {*}
+ */
+void trace_predict()
+{
+    for (auto it = TraceList.begin(); it != TraceList.end(); it++)
+    {
+        (*it).Predict_();
+    }
+}
+
+/**
+ * @names: 
+ * @description: Briefly describe the function of your function
+ * @param {vector<radar_point_t>} &new_meas
+ * @return {*}
+ */
+void trace_match(std::vector<radar_point_t> &new_meas)
+{
+    VectorXf meas = VectorXf(2);
+
+    std::vector<std::vector<VectorXf>> match_matrix_set;
+
+    float likelihood_val;
+
+    // step 1: match
+    for (auto &trace : TraceList)
+    {
+        std::vector<VectorXf> trace_match_matrix;
+        for (auto &point : new_meas)
+        {
+            meas << point.y_cc, point.x_cc;
+
+            // 位置似然比
+            likelihood_val = trace.Compute_Meas_Likelihood(meas);
+
+            if (likelihood_val > 0.2)
+            {
+                trace_match_matrix.push_back(meas);
+                point.valid = false;
+            }
+        }
+
+        match_matrix_set.push_back(trace_match_matrix);
+    }
+
+    // step 2: update
+    int idx=0;
+    for(auto &trace : TraceList)
+    {
+        if(!match_matrix_set.at(idx).empty())
+        {
+            MatrixXf measSet = MatrixXf(match_matrix_set.at(idx).size(), 2);
+            int idx2 = 0;
+            for(auto &meas:match_matrix_set.at(idx))
+            {
+                measSet(idx, 0) = meas(0);
+                measSet(idx, 1) = meas(1);
+            }
+
+            trace.Update_State(measSet);
+        }
+
+        idx++;
+    }
+}
+
+void trace_manage()
+{
+    // 航迹删除
+    for (auto it = TraceList.begin(); it != TraceList.end(); it++)
+    {
+        // (*it).Predict_();
+        RandomMatrice::Tracker &tace = (*it);
+        if(tace.)
+        {
+
+        }
+    }
+
+    // 航迹新生
+}
+
+/**
+ * @names:
+ * @description: Briefly describe the function of your function
+ * @param {vector<radar_point_t>} &new_meas
+ * @return {*}
+ */
 int radar_track_main(std::vector<radar_point_t> &new_meas)
 {
     // Step 1:
-    point_cluster(new_meas);
+    std::vector<radar_cluster_t> cluster;
+    cluster = point_cluster(new_meas);
 
     // Step 2: Trace Predict
+    trace_predict();
 
     // Step 3: Association
+    trace_match(new_meas);
 
     // Step 4: Trace Update
 
