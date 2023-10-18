@@ -12,6 +12,8 @@ using namespace RadarDemo;
 // local vari
 std::vector<RandomMatrice::Tracker> TraceList;
 
+cv::Mat image;
+
 /**
  * @names: point_cluster
  * @description: 点云聚类
@@ -24,7 +26,7 @@ std::vector<radar_cluster_t> point_cluster(std::vector<radar_point_t> &new_meas)
     DBSCAN::Point4DBSCAN Point;
     std::vector<DBSCAN::Point4DBSCAN> PointSet;
 
-    cv::Mat image = cv::Mat::zeros(600, 800, CV_8UC3); // 宽800，高600，3通道图像
+    image = cv::Mat::zeros(600, 800, CV_8UC3); // 宽800，高600，3通道图像
 
     /* 设置点云DBSCAN参数 */
     std::vector<cv::Point2f> point_cloud_orin;
@@ -32,7 +34,15 @@ std::vector<radar_cluster_t> point_cluster(std::vector<radar_point_t> &new_meas)
     {
         auto &sub_meas = new_meas.at(n);
 
-        if ((sub_meas.x_cc < 0.0) || (fabs(sub_meas.vr_compensated) < 0.1))
+        // 添加点到点云数据
+        if (VISUALIZATION)
+        {
+            cv::circle(image,
+                       cv::Point2f((sub_meas.y_cc + 100) / 200 * 800, 600 - sub_meas.x_cc / 100 * 600),
+                       3, cv::Scalar(200, 200, 200), -1);
+        }
+
+        if ((sub_meas.x_cc < 0.0) || (fabs(sub_meas.vr_compensated) < 1.0) || (sub_meas.valid == false))
         {
             continue;
         }
@@ -57,14 +67,6 @@ std::vector<radar_cluster_t> point_cluster(std::vector<radar_point_t> &new_meas)
         Point.DBSCAN_para.static_or_dyna = 0;
 
         PointSet.push_back(Point);
-
-        // 添加点到点云数据
-        if (VISUALIZATION)
-        {
-            cv::circle(image,
-                       cv::Point2f((Point.PointInfo.DistLat + 100) / 200 * 800, 600 - Point.PointInfo.DistLong / 100 * 600),
-                       3, cv::Scalar(200, 200, 200), -1); // 红色点
-        }
     }
     // std::cout << "DO KNN_DBSCAN " << std::endl;
 
@@ -88,7 +90,7 @@ std::vector<radar_cluster_t> point_cluster(std::vector<radar_point_t> &new_meas)
             // 显示图像
             for (const cv::Point2f &point : point_cloud)
             {
-                cv::circle(image, point, 2, cv::Scalar(0, idx * 20, 50 + idx * 20), -1); // 红色点
+                cv::circle(image, point, 2, cv::Scalar(0, idx * 20, 50 + idx * 20), -1);
             }
 
             idx++;
@@ -143,12 +145,6 @@ std::vector<radar_cluster_t> point_cluster(std::vector<radar_point_t> &new_meas)
         }
     }
 
-    if (VISUALIZATION)
-    {
-        cv::imshow("Point Cloud Visualization", image);
-        cv::waitKey(50);
-    }
-
     return radar_cluters;
 }
 
@@ -159,20 +155,24 @@ std::vector<radar_cluster_t> point_cluster(std::vector<radar_point_t> &new_meas)
  */
 void trace_predict()
 {
+    std::cout << " Do [trace_predict] start ... " << std::endl;
     for (auto it = TraceList.begin(); it != TraceList.end(); it++)
     {
+
         (*it).Predict_();
     }
+    std::cout << " Do [trace_predict] finish !!! " << std::endl;
 }
 
 /**
- * @names: 
+ * @names:
  * @description: Briefly describe the function of your function
  * @param {vector<radar_point_t>} &new_meas
  * @return {*}
  */
 void trace_match(std::vector<radar_point_t> &new_meas)
 {
+    std::cout << " Do [trace_match] start ... " << std::endl;
     VectorXf meas = VectorXf(2);
 
     std::vector<std::vector<VectorXf>> match_matrix_set;
@@ -185,15 +185,18 @@ void trace_match(std::vector<radar_point_t> &new_meas)
         std::vector<VectorXf> trace_match_matrix;
         for (auto &point : new_meas)
         {
-            meas << point.y_cc, point.x_cc;
-
-            // 位置似然比
-            likelihood_val = trace.Compute_Meas_Likelihood(meas);
-
-            if (likelihood_val > 0.2)
+            if (point.valid)
             {
-                trace_match_matrix.push_back(meas);
-                point.valid = false;
+                meas << point.y_cc, point.x_cc;
+
+                // 位置似然比
+                likelihood_val = trace.Compute_Meas_Likelihood(meas);
+
+                if (likelihood_val > 0.01)
+                {
+                    trace_match_matrix.push_back(meas);
+                    point.valid = false;
+                }
             }
         }
 
@@ -201,40 +204,76 @@ void trace_match(std::vector<radar_point_t> &new_meas)
     }
 
     // step 2: update
-    int idx=0;
-    for(auto &trace : TraceList)
+    int idx = 0;
+    for (auto &trace : TraceList)
     {
-        if(!match_matrix_set.at(idx).empty())
+        if (!match_matrix_set.at(idx).empty())
         {
             MatrixXf measSet = MatrixXf(match_matrix_set.at(idx).size(), 2);
             int idx2 = 0;
-            for(auto &meas:match_matrix_set.at(idx))
+            for (auto &meas : match_matrix_set.at(idx))
             {
-                measSet(idx, 0) = meas(0);
-                measSet(idx, 1) = meas(1);
+                measSet(idx2, 0) = meas(0);
+                measSet(idx2, 1) = meas(1);
+                idx2++;
             }
-
             trace.Update_State(measSet);
         }
 
         idx++;
     }
+
+    std::cout << " Do [trace_match] finish !!! " << std::endl;
 }
 
-void trace_manage()
+/**
+ * @names:
+ * @description: Briefly describe the function of your function
+ * @return {*}
+ */
+void trace_manage(void)
 {
     // 航迹删除
-    for (auto it = TraceList.begin(); it != TraceList.end(); it++)
+    for (auto it = TraceList.begin(); it != TraceList.end();)
     {
         // (*it).Predict_();
-        RandomMatrice::Tracker &tace = (*it);
-        if(tace.)
+        RandomMatrice::Tracker &trace = (*it);
+        if (!trace.trace_valid())
         {
-
+            it = TraceList.erase(it); // check next trace
+        }
+        else
+        {
+            it++;
         }
     }
+}
+
+/**
+ * @names:
+ * @description: Briefly describe the function of your function
+ * @param {vector<radar_point_t>} &new_meas
+ * @return {*}
+ */
+void trace_birth(std::vector<radar_point_t> &new_meas)
+{
+    static int global_id = 0;
 
     // 航迹新生
+    std::vector<radar_cluster_t> clusters;
+    clusters = point_cluster(new_meas);
+
+    for (auto &sub_cluster : clusters)
+    {
+        VectorXf new_x = VectorXf(2);
+
+        new_x << sub_cluster.center[0], sub_cluster.center[1];
+        std::cout << "new trace:[" << new_x(0) << ", " << new_x(1) << "]" << std::endl;
+
+        RandomMatrice::Tracker trace(new_x, sub_cluster.len, sub_cluster.wid, global_id);
+        TraceList.push_back(trace);
+        global_id++;
+    }
 }
 
 /**
@@ -256,6 +295,26 @@ int radar_track_main(std::vector<radar_point_t> &new_meas)
     trace_match(new_meas);
 
     // Step 4: Trace Update
+
+    trace_manage();
+
+    trace_birth(new_meas);
+
+    std::cout << "cur trace number: " << TraceList.size() << std::endl;
+
+    if (VISUALIZATION)
+    {
+        VectorXf X_;
+        for (auto &trace : TraceList)
+        {
+            X_ = trace.get_X();
+            auto point = cv::Point2f((X_(0) + 100) / 200 * 800, 600 - (X_(1) / 100 * 600));
+            cv::circle(image, point, 5, cv::Scalar(0, 255, 255), -1);
+        }
+
+        cv::imshow("Point Cloud Visualization", image);
+        cv::waitKey(50);
+    }
 
     return 1;
 }

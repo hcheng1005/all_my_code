@@ -2,7 +2,7 @@
 Author: CharlesCH hcheng1005@gmail.com
 Date: 2023-02-20 21:00:50
 LastEditors: CharlesCH hcheng1005@gmail.com
-LastEditTime: 2023-10-10 20:13:02
+LastEditTime: 2023-10-18 22:04:16
 FilePath: /all_my_code/src/src/RadarDemo/radarscene/trans_radar_pc.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -22,7 +22,7 @@ def main():
 
     # Define the *.json file from which data should be loaded
     # some random sequence is chosen here.
-    filename = os.path.join(path_to_dataset, "data", "sequence_2", "scenes.json")
+    filename = os.path.join(path_to_dataset, "data", "sequence_20", "scenes.json")
 
     if not os.path.exists(filename):
         print("Please modify this example so that it contains the correct path to the dataset on your machine.")
@@ -56,7 +56,7 @@ def main():
     uuid = []
     track_id = []
     label_id = []
-    radar_pc_save_path = "./"
+    radar_pc_save_path = "/home/charles/myCode/about_others/radar_scenes/RadarScenes/data/sequence_20/radarpc/"
     for idx, scene in enumerate(sequence.scenes()):
         if idx == 0:
             # check that start_time of the sequence is in fact identical to the timestamp of the first returned scene
@@ -81,9 +81,9 @@ def main():
             
             all_data = np.asarray([x_cc, y_cc, range_sc, azimuth_sc, rcs, vr, vr_compensated, x_seq, y_seq]).T
             
-            # file_ = str(scene.camera_image_name)
-            # sub_file_name = radar_pc_save_path + file_.split('/')[-1][:-4] + '.txt'
-            # np.savetxt(sub_file_name, all_data, fmt='%.4f')
+            file_ = str(scene.camera_image_name)
+            sub_file_name = radar_pc_save_path + file_.split('/')[-1][:-4] + '.txt'
+            np.savetxt(sub_file_name, all_data, fmt='%.4f')
             
             img = cv2.imread(scene.camera_image_name)
             cv2.imshow('img', img)

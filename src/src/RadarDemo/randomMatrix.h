@@ -7,8 +7,6 @@
 using Eigen::MatrixXf;
 using Eigen::VectorXf;
 
-namespace RandomMatrice
-{
 #define SSIZE 6
 #define MSIZE 2
 
@@ -19,11 +17,13 @@ namespace RandomMatrice
 #define iAccLat 4
 #define iAccLong 5
 
+namespace RandomMatrice
+{
     class Tracker
     {
 
     public:
-        Tracker(VectorXf new_Z, int new_ID)
+        Tracker(VectorXf new_Z, float len, float wid, int new_ID)
         {
             X = X.setZero();
             X(iDistLat) = new_Z(iDistLat);
@@ -31,7 +31,11 @@ namespace RandomMatrice
 
             P = P.setIdentity() * 4;
 
-            Set_Q(0.2, 0.2);
+            X_ex = X_ex.setIdentity();
+            X_ex(0,0) = 0.25 * len * len;
+            X_ex(1,1) = 0.25 * wid * wid;
+
+            Set_Q(0.4, 0.4);
             Set_R();
             Set_F();
             Set_H();
@@ -43,6 +47,11 @@ namespace RandomMatrice
         {
         }
 
+        /**
+         * @names:
+         * @description: Briefly describe the function of your function
+         * @return {*}
+         */
         void Predict_(void)
         {
             Predict_State();
@@ -52,6 +61,16 @@ namespace RandomMatrice
             matched = false;
         }
 
+        VectorXf get_X(void)
+        {
+            return X;
+        }
+
+        /**
+         * @names:
+         * @description: Briefly describe the function of your function
+         * @return {*}
+         */
         VectorXf Get_Z(void)
         {
             return (H * X);
@@ -69,9 +88,20 @@ namespace RandomMatrice
             MatrixXf phi_ = X_ex + R;
             VectorXf diff_ = Z_meas - mu_;
 
-            float part1 = 1.0 / pow(2.0 * M_PI, 1) / sqrt(phi_.determinant());
+            float likelihood = 0.0;
+            if ((fabs(diff_(0)) > 5.0) || (fabs(diff_(1)) > 5.0))
+            {
+                likelihood = 0.0;
+            }
+            else
+            {
+                float part1 = 1.0 / pow(2.0 * M_PI, 1) / sqrt(phi_.determinant());
 
-            float likelihood = part1 * exp(-0.5 * diff_.transpose() * phi_.inverse() * diff_);
+                likelihood = part1 * exp(-0.5 * diff_.transpose() * phi_.inverse() * diff_);
+
+                // std::cout << "diff: " << diff_(0) << " ," << diff_(1) << " , likelihood: " << likelihood << std::endl;
+            }
+
             return likelihood;
         }
 
@@ -97,26 +127,57 @@ namespace RandomMatrice
             unmatch_cout = 0;
         }
 
-        bool trace_delete(void)
+        /**
+         * @names:
+         * @description: Briefly describe the function of your function
+         * @return {*}
+         */
+        bool trace_valid(void)
         {
-            if(status == 0)
+            bool flag = true;
+            if (matched)
             {
-                if(match_count >= 4)
+                match_count++;
+                unmatch_cout = 0;
+            }
+            else
+            {
+                match_count = 0;
+                unmatch_cout++;
+            }
+
+            if (status == 0) // unactivated
+            {
+                if (match_count >= 4)
                 {
-                    status = 0;
+                    status = 1;
+                }
+                else
+                {
+                    if ((unmatch_cout >= 3) || ((unmatch_cout >= 1) && (age < 5)))
+                    {
+                        flag = false;
+                    }
                 }
             }
-            else{
-
+            else
+            {
+                if (unmatch_cout >= 3)
+                {
+                    status = 0;
+                    flag = false;
+                }
             }
+
+            return flag;
         }
 
     private:
         int id = 0;
         int age = 1;
-        const float dt = 0.075;
+        float dt = 0.075;
 
-        int status = 0; 
+        int status = 0;
 
         bool matched = false;
         int match_count = 0;
@@ -168,7 +229,7 @@ namespace RandomMatrice
          */
         void Set_R(void)
         {
-            R << std::pow(0.2, 2.0), 0.0, 0.0, std::pow(0.2, 2.0);
+            R << std::pow(0.5, 2.0), 0.0, 0.0, std::pow(0.5, 2.0);
         }
 
         /**
@@ -234,7 +295,7 @@ namespace RandomMatrice
             MatrixXf Yk = 0.9 * X_ex + R;
             MatrixXf S = H * P * H.transpose() + Yk;
             MatrixXf K = P * H.transpose() * S.inverse();
-            MatrixXf y_hat = meas_mat.colwise().mean();
+            VectorXf y_hat = meas_mat.colwise().mean();
             X = X + K * (y_hat - H * X);
             P = P - K * S * K.transpose();
         }
@@ -248,9 +309,10 @@ namespace RandomMatrice
         void Update_With_Extension(MatrixXf meas_mat)
         {
             int meas_num = meas_mat.rows();
-            MatrixXf y_hat = meas_mat.colwise().mean();
+            VectorXf y_hat = meas_mat.colwise().mean();
             Eigen::RowVectorXf Z_mean(Eigen::RowVectorXf::Map(y_hat.data(), meas_mat.cols()));
             Eigen::MatrixXf ZK = meas_mat.rowwise() - Z_mean;
+
             MatrixXf Yhat = (ZK.transpose() * ZK) / (meas_num - 1);
 
             // compute kalman S and K
@@ -260,7 +322,6 @@ namespace RandomMatrice
 
             X = X + K * (y_hat - H * X);
             P = P - K * S * K.transpose();
-
             MatrixXf N_ = (y_hat - H * X) * ((y_hat - H * X).transpose());
 
             MatrixXf X_chol = X_ex.ldlt().matrixL();
@@ -271,8 +332,11 @@ namespace RandomMatrice
             MatrixXf N_hat = X_chol * S_chol.inverse() * N_ * S_chol.inverse().transpose() * X_chol.transpose();
             MatrixXf Y_hat = X_chol * Yk_chol.inverse() * Yhat * Yk_chol.inverse().transpose() * X_chol.transpose();
 
-            // alpha_ = alpha_ + meas_num;
             X_ex = 1.0 / (alpha_ + meas_num) * (alpha_ * X_ex + N_hat + Y_hat);
+            alpha_ = alpha_ + meas_num;
+
+
+            std::cout << "SPD Matrice:" << X_ex(0,0) << " ," << X_ex(1,1) << std::endl;
         }
     };
 
