@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.7)
-project(demo_ros)
+project(DemoList)
 ## Compile as C++11, supported in ROS Kinetic and newer
- add_compile_options(-std=c++17)
+add_compile_options(-std=c++17)
 
 ###########
 ## Build ##
@@ -15,12 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES simple_slam
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
-)
+
 set(PCL_INCLUDE_DIRS "usr/include/pcl-1.12/pcl")
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
@@ -86,3 +81,42 @@ target_link_libraries(radar_tracking_demo_node radar_tracking_demo ${catkin_LIBR
 # target_link_libraries(kbest_demo ${catkin_LIBRARIES})
 # add_executable(kbest_demo_node src/Assignment/kbest_demo.cpp  include/assignment/auction.cpp include/assignment/Lapjv.cpp)
 # target_link_libraries(kbest_demo_node kbest_demo ${catkin_LIBRARIES})
+
+
+# DATMO demo
+#MultiThreading Library
+find_package(OpenMP REQUIRED)
+OPTION (USE_OpenMP "Use OpenMP" OFF)
+IF(USE_OpenMP)
+  FIND_PACKAGE(OpenMP)
+  IF(OPENMP_FOUND)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  ENDIF()
+ENDIF()
+
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_msgs
+  tf
+  nav_msgs
+  sensor_msgs
+  visualization_msgs
+  cmake_modules REQUIRED
+  message_generation
+)
+
+add_message_files(
+  FILES
+  Track.msg
+  TrackArray.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  nav_msgs
+  std_msgs
+)
+
+add_executable(datmo src/DATMO/src/main.cpp src/DATMO/src/l_shape_tracker.cpp src/DATMO/src/kalman-cpp/kalman.cpp src/DATMO/src/datmo.cpp src/DATMO/src/cluster.cpp)
+add_dependencies(datmo ${catkin_EXPORTED_TARGETS} datmo_generate_messages_cpp)
+target_link_libraries(datmo ${catkin_LIBRARIES})
