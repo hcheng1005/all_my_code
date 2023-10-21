@@ -6,3 +6,8 @@ src/src/SimpleTracker/*.txt
 src/src/SimpleTracker/*.bin
 src/src/SimpleTracker/pc/*
 src/src/SimpleTracker/det/*
+src/src/multi_sensor_mot/.vscode
+src/src/multi_sensor_mot/build
+# src/src/multi_sensor_mot/data
+src/src/multi_sensor_mot/results
+src/src/multi_sensor_mot/visualization/*.png
